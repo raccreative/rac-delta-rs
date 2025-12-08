@@ -321,7 +321,21 @@ impl DeltaService for MemoryDeltaService {
         local_index: &RDIndex,
         remote_index: Option<&RDIndex>,
     ) -> Result<DeltaPlan, DeltaError> {
-        self.compare(local_index, remote_index)
+        let mut delta_plan = self.compare(local_index, remote_index)?;
+
+        let mut all_needed_hashes = HashSet::new();
+
+        for file in &local_index.files {
+            for chunk in &file.chunks {
+                all_needed_hashes.insert(chunk.hash.clone());
+            }
+        }
+
+        delta_plan
+            .obsolete_chunks
+            .retain(|chunk| !all_needed_hashes.contains(&chunk.chunk.hash));
+
+        Ok(delta_plan)
     }
 
     async fn compare_for_download(

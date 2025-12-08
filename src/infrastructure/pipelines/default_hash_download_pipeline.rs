@@ -732,16 +732,13 @@ mod default_hash_download_pipeline_tests {
 
     #[tokio::test]
     async fn test_download_and_reconstruct_disk() {
-        // Directorio temporal general
         let tmp_dir = tmp_dir("test_download_and_reconstruct_disk");
         let tmp_dir = normalize_path(&tmp_dir.canonicalize().unwrap_or(tmp_dir));
         fs::create_dir_all(&tmp_dir).unwrap();
 
-        // Directorio donde se reconstruirán los archivos
         let output_dir = tmp_dir.join("reconstructed");
         fs::create_dir_all(&output_dir).unwrap();
 
-        // Directorio donde se guardan los chunks
         let chunk_cache_dir = tmp_dir.join("chunk_cache");
         fs::create_dir_all(&chunk_cache_dir).unwrap();
 

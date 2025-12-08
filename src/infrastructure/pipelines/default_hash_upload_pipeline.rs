@@ -189,7 +189,7 @@ impl HashUploadPipeline for DefaultHashUploadPipeline {
         &self,
         plan: &DeltaPlan,
         base_dir: &Path,
-        force: bool,
+        _force: bool,
         options: Option<UploadOptions>,
     ) -> UploadResult<()> {
         if plan.missing_chunks.is_empty() {
@@ -261,7 +261,7 @@ impl HashUploadPipeline for DefaultHashUploadPipeline {
                             .map_err(|e| PipelineError::Io(e))?;
 
                         let put_chunk_options = PutChunkOptions {
-                            overwrite: Some(force),
+                            overwrite: Some(true),
                             size: Some(c.chunk.size),
                         };
 
@@ -697,5 +697,74 @@ mod default_hash_upload_pipeline_tests {
         }
 
         assert_eq!(new_index.files.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn does_not_delete_shared_chunks_used_in_multiple_files() {
+        let tmp = tmp_dir("shared_chunks");
+        let local_storage_config = LocalStorageConfig {
+            base_path: tmp.clone(),
+            base: BaseStorageConfig { path_prefix: None },
+        };
+
+        let storage: Arc<dyn HashStorageAdapter + Send + Sync> =
+            Arc::new(LocalStorageAdapter::new(local_storage_config.clone()));
+        let hasher: Arc<dyn HasherService + Send + Sync> = Arc::new(Blake3HasherService::new());
+        let delta: Arc<dyn DeltaService + Send + Sync> =
+            Arc::new(MemoryDeltaService::new(hasher.clone()));
+
+        let pipeline = DefaultHashUploadPipeline::new(
+            Arc::clone(&storage),
+            Arc::clone(&delta),
+            Arc::new(RacDeltaConfig {
+                chunk_size: 5,
+                max_concurrency: Some(2),
+                storage: crate::StorageConfig::Local(local_storage_config.clone()),
+            }),
+        );
+
+        let content_shared = "ABCDE";
+        let content_a = format!("{}12345", content_shared);
+        let content_b = format!("{}67890", content_shared);
+
+        create_file(&tmp, "A.txt", &content_a).await;
+        create_file(&tmp, "B.txt", &content_b).await;
+
+        let first_index = pipeline
+            .execute(&tmp, None, None)
+            .await
+            .expect("first pipeline execution failed");
+
+        let shared_hash_opt = first_index
+            .files
+            .iter()
+            .flat_map(|f| &f.chunks)
+            .find(|chunk| {
+                let start = chunk.offset as usize;
+                let end = start + chunk.size as usize;
+                let slice = &content_a.as_bytes()[start..end];
+                content_shared.as_bytes().contains(&slice[0])
+            })
+            .map(|c| c.hash.clone());
+
+        assert!(shared_hash_opt.is_some(), "shared chunk not found");
+        let shared_hash = shared_hash_opt.unwrap();
+
+        tokio::fs::write(tmp.join("A.txt"), "12345").await.unwrap();
+
+        let new_index = pipeline
+            .execute(&tmp, Some(first_index.clone()), None)
+            .await
+            .expect("second pipeline execution failed");
+
+        let exists = storage.get_chunk(&shared_hash).await.unwrap().is_some();
+        assert!(
+            exists,
+            "shared chunk {} was deleted but is still used by B.txt",
+            shared_hash
+        );
+
+        let updated_a = new_index.files.iter().find(|f| f.path == "A.txt");
+        assert!(updated_a.is_some(), "A.txt not present after reindexing");
     }
 }

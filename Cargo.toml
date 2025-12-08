@@ -2,9 +2,16 @@
 name = "rac-delta"
 version = "1.0.0"
 edition = "2024"
-authors = ["Rubén Cruz <ruben.cruz.fuentes@gmail.com>"]
-description = "rac-delta protocol for delta-patching implementation in Rust"
+authors = ["Rubén Cruz <contact@raccreativegames.com>"]
+description = "Storage agnostic delta patching implementation of rac-delta protocol for Rust. With streaming support and file reconstruction."
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/raccreative/rac-delta-rs"
+keywords = ["rust", "delta", "patching", "protocol", "streaming", "differential", "s3", "open"]
+categories = ["compression", "filesystem", "network-programming"]
+
+[lib]
+path = "src/lib.rs"
 
 [dependencies]
 async-trait = "0.1.89"
@@ -18,7 +25,7 @@ async-stream = "0.3.6"
 serde_json = "1.0"
 tokio-util = { version = "0.7.17", features = ["io", "compat"] }
 
-aws-sdk-s3 = { version = "1.115.0", optional = true }
+aws-sdk-s3 = { version = "1.116.0", optional = true }
 azure_storage_blob = { version = "0.7.0", optional = true }
 azure_core = { version = "0.30.1", optional = true }
 google-cloud-auth = { version = "1.2.0", optional = true }
