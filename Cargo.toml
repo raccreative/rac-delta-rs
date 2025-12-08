@@ -7,7 +7,7 @@ description = "Storage agnostic delta patching implementation of rac-delta proto
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/raccreative/rac-delta-rs"
-keywords = ["rust", "delta", "patching", "protocol", "streaming", "differential", "s3", "open"]
+keywords = ["delta", "patching", "protocol", "streaming", "differential"]
 categories = ["compression", "filesystem", "network-programming"]
 
 [lib]
