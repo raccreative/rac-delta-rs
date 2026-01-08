@@ -1,6 +1,6 @@
 [package]
 name = "rac-delta"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 authors = ["Rubén Cruz <contact@raccreativegames.com>"]
 description = "Storage agnostic delta patching implementation of rac-delta protocol for Rust. With streaming support and file reconstruction."

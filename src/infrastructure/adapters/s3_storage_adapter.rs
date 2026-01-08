@@ -35,11 +35,15 @@ pub mod s3_adapter {
                 "custom",
             );
 
-            let aws_config = AwsConfig::builder()
+            let mut aws_config = AwsConfig::builder()
                 .region(Region::new(region))
-                .credentials_provider(creds)
-                .endpoint_url(config.endpoint.clone().unwrap_or_default())
-                .build();
+                .credentials_provider(creds);
+
+            if let Some(endpoint) = &config.endpoint {
+                aws_config = aws_config.endpoint_url(endpoint);
+            }
+
+            let aws_config = aws_config.build();
 
             let client = S3Client::from_conf(aws_config);
 
